@@ -17,5 +17,8 @@
   },
   "dependencies" : {
     "redis" : "*"
+  },
+  "scripts": {
+    "test": "node ./test.js"
   }
 }
