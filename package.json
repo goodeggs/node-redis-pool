@@ -6,7 +6,10 @@
     "name": "Valentin Morenko",
     "email": "valzon90@gmail.com"
   },
-  "keywords": ["pool", "redis"],
+  "keywords": [
+    "pool",
+    "redis"
+  ],
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -15,10 +18,13 @@
   "engines": {
     "node": "*"
   },
-  "dependencies" : {
-    "redis" : "*"
+  "dependencies": {
+    "redis": "*"
   },
   "scripts": {
-    "test": "node ./test.js"
+    "test": "./node_modules/.bin/mocha"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.5"
   }
 }

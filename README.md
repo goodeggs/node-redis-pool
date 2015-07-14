@@ -19,10 +19,10 @@ var poolRedis = require('pool-redis')({
   'maxConnections': 10
 });
 
-poolRedis.getClient(function(client, done) {
+poolRedis.getClient(function(err, client, release) {
   client.get('key', function(err, value) {
     console.log('value from redis is:', value);
-    done();
+    release();
   });
 });
 ```
@@ -44,7 +44,11 @@ poolRedis.getClient(function(client, done) {
 ## Methods
 
 ### getClient(callback)
-Main method. Returns a redis client from the pool. The callback is passed an **client** and **done**. The **client** object is a normal [redis client][]. Release the **client** into a pool by calling the **done()** function (simplest way) or call .release(client) method.
+Main method. Returns a redis client from the pool. 
+The callback is passed **`(error, client, release)`**. 
+The **client** object is a normal [redis client][]. 
+Release the **client** into a pool by calling the `release()` function (simplest way) 
+or call .release(client) method.
 
 ### release(client)
 This method will release client object back into the pool.

@@ -28,7 +28,7 @@ RedisPool.prototype.getClient = function(cb) {
   var rc;
   var RP = this;
   if ((rc = this._getFreeClient()) != null) {
-    cb(rc, function() {
+    cb(null, rc, function() {
       RP.release(rc);
     });
   }
@@ -49,41 +49,49 @@ RedisPool.prototype._getFreeClient = function() {
   return null;
 };
 
-RedisPool.prototype._createClient = function(cb) {
-  this._connections.count++;
-  var cbDone = false;
+RedisPool.prototype._createClient = function(_cb) {
+  this._connections.count++;  // optimistic
   var RP = this;
-  var newCb = function(rc) {
+  var rc;
+
+  function onError(e) {
+    cb(e);
+  }
+
+  function onReady() {
+    cb(null, rc);
+  }
+
+  var cbDone = false;  // only callable once
+  function cb(err, rc) {
     if (!cbDone) {
-      if (rc != null) {
-        RP._connections.all.push(rc);
-      }
       cbDone = true;
-      cb(rc, function() {
+      rc.removeListener('ready', onReady);
+      rc.removeListener('error', onError);
+
+      if (err) {
+        RP.close(rc);
+        _cb(err);
+        return;
+      }
+
+      RP._connections.all.push(rc);
+
+      _cb(null, rc, function() {
         RP.release(rc);
       });
     }
   }
-  var rc = redis.createClient(this._config.port, this._config.host, this._config.options);
+  rc = redis.createClient(this._config.port, this._config.host, this._config.options);
+
   if (this._config.password) {
     rc.auth(this._config.password, function(err) {
-      if (err) {
-        console.error('redis auth error:', err);
-        throw err;
-      }
+      if (err) cb(err);   // rest of fn continues, but `cb` won't be called again.
     });
   }
-  rc.on('ready', function() {
-    newCb(rc);
-  });
-  if (this._config.handleRedisError) {
-    var RP = this;
-    rc.on('error', function(e) {
-      console.error('redis error:', e);
-      newCb(null);
-      RP.close(rc);
-    });
-  }
+
+  rc.once('ready', onReady);
+  rc.once('error', onError);
 };
 
 RedisPool.prototype.close = function(rc) {
@@ -104,7 +112,7 @@ RedisPool.prototype.release = function(rc) {
 RedisPool.prototype._releaseQueue = function() {
   if (this._queue.length > 0) {
     var cb = this._queue[0];
-    helpers.removeArrayEl(this._queue, cb);
+    helpers.removeArrayEl(this._queue, cb);  // TODO why not just `shift`?
     this.getClient(cb);
   }
 };
