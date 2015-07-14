@@ -6,16 +6,9 @@ module.exports = function(config) {
   return new RedisPool(config);
 };
 
-var pools = {};
-
 function RedisPool(config) {
   var config = helpers.mergeOptions(settings, config);
-  var hash = helpers.createHash(config);
-  if (typeof pools[hash] != 'undefined') {
-    return pools[hash];
-  }
   this._config = config;
-  pools[hash] = this;
   this._connections = {
     all: [],
     free: [],
@@ -59,13 +52,14 @@ RedisPool.prototype._createClient = function(_cb) {
   }
 
   function onReady() {
-    cb(null, rc);
+    cb();
   }
 
   var cbDone = false;  // only callable once
-  function cb(err, rc) {
+  function cb(err) {
     if (!cbDone) {
       cbDone = true;
+
       rc.removeListener('ready', onReady);
       rc.removeListener('error', onError);
 
