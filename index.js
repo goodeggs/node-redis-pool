@@ -64,7 +64,7 @@ RedisPool.prototype._createClient = function(_cb) {
       rc.removeListener('error', onError);
 
       if (err) {
-        RP.close(rc);
+        RP.close(rc, true); // force close (can't send QUIT if not connected)
         _cb(err);
         return;
       }
@@ -88,11 +88,16 @@ RedisPool.prototype._createClient = function(_cb) {
   rc.once('error', onError);
 };
 
-RedisPool.prototype.close = function(rc) {
+RedisPool.prototype.close = function(rc, force) {
   helpers.removeArrayEl(this._connections.free, rc);
   helpers.removeArrayEl(this._connections.all, rc);
   this._connections.count--;
-  rc.quit();
+
+  if (force)
+    rc.end();
+  else
+    rc.quit();
+
   this._releaseQueue();
 };
 
